@@ -1,0 +1,33 @@
+<div class="box" >
+  <div *ngIf="auth.user | async; then authenticated else guest">
+          <!-- template will replace this div -->
+          <!-- NOT USED AS GUES LOGIN DISABLED. ONLY FOR TESTING -->
+  </div>
+</div>
+
+<!-- User NOT logged in -->
+<ng-template #guest class="box">
+  <div class="card" style="width: 18rem;">
+    <img class="card-img-top" src="../assets/img/pi.png" alt="Card image cap">
+    <div class="card-body">
+      <h5 class="card-title">Welcome!</h5>
+      <p class="card-text">Login to get started...</p>
+      <button class="btn btn-outline-secondary" routerLink="/login">Login</button>
+    </div>
+  </div>
+</ng-template>
+
+<!-- User logged in -->
+<ng-template #authenticated>
+  <div *ngIf="auth.user | async as user">
+      <div class="card" style="width: 18rem;">
+          <img class="card-img-top" [src]="user.photoURL || 'https://api.adorable.io/avatars/109/fire.png'" width=50px>
+          <div class="card-body">
+            <h5 class="card-title">Welcome, <strong>{{ user.displayName }}</strong></h5>
+            <p>Click the button to access video dashboard.</p>
+            <button class="btn btn-outline-danger" (click)="logout()">Logout</button>
+          </div>
+        </div>
+    
+  </div>
+</ng-template>

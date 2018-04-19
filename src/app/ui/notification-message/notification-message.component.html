@@ -1,0 +1,11 @@
+<div *ngIf="notify.msg | async as msg" class="alert alert-dismissible fade show" role="alert"
+[ngClass]="{ 
+  'alert-danger': msg.style == 'error',
+  'alert-success': msg.style == 'success',
+  'alert-warning': msg.style == 'info'
+}">
+<button type="button" (click)="notify.clear()" class="close" data-dismiss="alert" aria-label="Close">
+    <span aria-hidden="true">&times;</span>
+</button>
+{{ msg.content }}
+</div>
