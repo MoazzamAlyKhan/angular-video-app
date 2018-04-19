@@ -2,16 +2,17 @@ import { Component, OnInit } from '@angular/core';
 import { ItemService } from '../../core/item.service';
 import { Item } from '../../models/item';
 import { VimeoService } from '../../core/vimeo.service';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpResponse } from '@angular/common/http';
 import { EmbedVideoService } from 'ngx-embed-video';
 import { Observable } from '@firebase/util/dist/esm/src/subscribe';
 import { NotifyService } from '../../core/notify.service';
 import { RequestOptionsArgs, RequestOptions } from '@angular/http';
-import { Router } from '@angular/router';
+
 import { HttpHeaders } from '@angular/common/http';
 import { HttpRequest } from '@angular/common/http';
 import { VimeoUpload } from 'vimeo-upload';
-import { DomSanitizer } from '@angular/platform-browser';
+
+import { HttpHeaderResponse } from '@angular/common/http/src/response';
 declare var jquery:any;
 declare var $ :any;
 
@@ -22,7 +23,7 @@ declare var $ :any;
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
-  trustedUrl: any;
+
   
 
   
@@ -39,9 +40,9 @@ export class DashboardComponent implements OnInit {
   Name:string; 
   myFile:File; /* property of File type */
   upload_link: string; // link used to query vimeo api
-  btn_disable: boolean = true;
-  pull_upload: boolean = false;
-  filesToUpload: Array<File>;
+  upl_disable: boolean = true; // upload button disabled before getting upload_data from vimeo
+  init_pull: boolean = false;
+
   form_rec: any;
 
   
@@ -54,8 +55,8 @@ export class DashboardComponent implements OnInit {
                 private vimService: VimeoService, 
                 private embedService: EmbedVideoService,
                 private notify: NotifyService,
-                private router: Router,
-                private sanitizer: DomSanitizer )
+               
+              )
                 
 
                 {
@@ -63,6 +64,10 @@ export class DashboardComponent implements OnInit {
                     console.log(items);
                     this.items = items;
                   });
+
+                  this.vimService.getPosts().subscribe(
+                    res => console.log(res)
+                  );
 
                   
                 }
@@ -95,7 +100,8 @@ export class DashboardComponent implements OnInit {
             
             this.form_rec = res.body.form;
             console.log(this.form_rec)
-            this.trustedUrl = this.sanitizer.bypassSecurityTrustHtml(this.form_rec);
+            this.upl_disable = false;
+        
        
             }
           
@@ -109,76 +115,66 @@ export class DashboardComponent implements OnInit {
     }
 
   
-    // Getting the video file from the html uploader
-    fileChange(files: any){ 
 
-      this.myFile = files[0].nativeElement;
-      // console.log(files[0]);
-      this.f_name = files[0].name;
+    // main function for recieving file and uploading it to vimeo
 
-    }
-
-    
-
-
-
-
-   
-
-
-    // On submitting the video file to the server
-    // THIS IS CURRENTLY DISABLED BECAUSE STD HTML FORM IS BEING USED
-    // INSTEAD OF ANGULAR FORM
-    onSubmit(): void {
-      
-            let formData = new FormData();
-            formData.append("MyFile", this.myFile);
-            console.log(formData);
-
-            const req = new HttpRequest('POST', this.upload_link, formData, {reportProgress:true});
-            this.http.request(req).subscribe(res=> console.log(res));
+    fileChange(event) {
+      this.init_pull = true;
+      let fileList: FileList = event.target.files;
+      if(fileList.length > 0) {
+          let file: File = fileList[0];
+          console.log(file)
+          let formData:FormData = new FormData();
+          formData.append('file_data', file);
+         
+         
         
-            this.http.post(this.upload_link, formData,{
-              observe: 'response',
-              responseType: 'text',
-              headers: new HttpHeaders().set('Content-Type','multipart/form-data') 
-            }).subscribe(
-              (res) => {
-                
-                if(res){
+          const req = new HttpRequest('POST', this.upload_link, formData, {
+            reportProgress:true,
+            responseType: 'text'});
 
-                  console.log(res);
-                  
-                  this.vimService.getPosts().subscribe(
+        
+          
+            this.http.request(req).subscribe(event => {
+              // Via this API, you get access to the raw event stream.
+              // Look for upload progress events.
+              if (event.type === HttpEventType.UploadProgress) {
+                // This is an upload progress event. Compute and show the % done:
+                const percentDone = Math.round(100 * event.loaded / event.total);
+                console.log(`File is ${percentDone}% uploaded.`);
+                this.notify.update('File Upload Progress:   ' + percentDone + '/100%', 'info');
+              } else if (event instanceof HttpResponse) {
+                this.notify.update('File Uploaded Successfully!', 'success');
+                this.upl_disable = true;
+                this.init_pull = false;
+                this.vimService.getPosts().subscribe(
                     
                        (value) => {
                         
                         this.v_link = value.data[0].link;
-                        this.item.title = this.f_name;
+                        this.item.title = 'Video';
                         this.item.link = this.v_link;
                         this.itemService.addItem(this.item);
                         this.item.title = '';
                         this.item.link = '';
-                        this.btn_disable = true;
-  
+                       
+            
                        },
                        (error) => {
                         this.handleError(error)
                       }
                      );
-                  
-                  
-                  
-                }
-                
-               },
-               (error) => {
-                this.handleError(error)
-               });
-            
-        }
+                     
 
-        // play video function accessable through clicks 
+
+                
+              }
+            });
+        
+        }
+      }
+          
+    
     playVideo(event, item){
 
       console.log(item.link);
@@ -194,32 +190,7 @@ export class DashboardComponent implements OnInit {
       })
       }
 
-
-      // pull uploaded video and store into firebase database
       
-    pullUploadedV(){
-
-      this.vimService.getPosts().subscribe(
-        
-           (value) => {
-            
-            this.v_link = value.data[0].link;
-            this.item.title = 'Video';
-            this.item.link = this.v_link;
-            this.itemService.addItem(this.item);
-            this.item.title = '';
-            this.item.link = '';
-            this.btn_disable = true;
-
-           },
-           (error) => {
-            this.handleError(error)
-          }
-         );
-         this.pull_upload = true;
-
-    }
-
     // If error, console log and notify user
     private handleError(error: Error) {
       console.error(error);

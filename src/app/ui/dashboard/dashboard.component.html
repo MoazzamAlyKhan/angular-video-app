@@ -14,35 +14,25 @@
 </div>
 
 <div>
-  <h5>Preliminaries</h5>
-  <small>-- Click 'Request Upload Access' to request an upload URL from Vimeo API using authenticated access token</small><br>
-  <small>-- On success, a form will show up. Upload your file to this form </small><br>
-  <small>-- Upon successful upload, you will be redirected to Vimeo page showing the URL</small><br>
-  <small>-- Once back from that page, click 'Pull Uploaded Video From Vimeo' to get the latest uploaded file</small>
-
+  <h5>Dashboard</h5>
+  <small>Please wait for some time for the video to get processed after it has been uploaded successfully <b>before clicking the buttons</b></small>
+ 
   <hr>
 </div>
 
 <div class="row">
   <div class="col-md-4">
-    <button (click)="initiatePull()" class="btn btn-primary">Request Upload Access</button>
+    <button [disabled]="init_pull" (click)="initiatePull()" class="btn btn-primary">Request Upload Access</button>
   </div>
   <div class="col-md-8">
     <div class="pull-right">
 
-      <!-- THIS IS THE ANGULAR FORM WHICH IS DISABLED BECAUSE IT IS NOT SUBMITTING DATA TO HTTP POST REQ -->
+   
+
+        <input [hidden]="upl_disable" type="file" (change)="fileChange($event)" placeholder="Upload file" >
+
       
-        <!-- <form method="POST" #yourForm="ngForm" (ngSubmit)="onSubmit()" enctype="multipart/form-data">
-          
-              <input type="file" #fileupload [(ngModel)]="myFile" name="file_data" id="file" (change)="fileChange(fileupload.files)"/>
-              <button [disabled]="btn_disable" class="btn btn-primary" type="submit" name="submit" value="submit">Submit</button>
-        </form> -->
-
-        <!-- HTML FORM INJECTED INTO ANGULAR APP RECIEVED FROM VIMEO -->
-        <div [innerHtml] = "trustedUrl">
-
-        </div>
-        <button [disabled]="pull_upload" (click)="pullUploadedV()" class="btn btn-secondary">Pull Uploaded Video From Vimeo</button>
+     
     </div>
   </div>
 </div>
